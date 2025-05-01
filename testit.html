@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Updated Payment Tracker (HDFC Loan) - Detailed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for Google Sheet look */
+        body {
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+            background-color: #f8f9fa; /* Light grey background */
+            padding: 1rem; /* Add padding */
+        }
+        .sheet-table {
+            width: 100%;
+            border-collapse: collapse; /* Collapse borders */
+            margin-bottom: 2rem; /* Space between tables */
+            background-color: #ffffff; /* White background for table */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* Subtle shadow */
+            border-radius: 8px; /* Rounded corners for the table container */
+            overflow: hidden; /* Ensure rounded corners clip content */
+        }
+        .sheet-table th, .sheet-table td {
+            border: 1px solid #dee2e6; /* Grey borders for cells */
+            padding: 0.75rem; /* Cell padding */
+            text-align: left;
+            font-size: 0.875rem; /* Slightly smaller font */
+            vertical-align: top; /* Align content to top */
+        }
+        .sheet-table th {
+            background-color: #f1f3f4; /* Lighter grey for header */
+            font-weight: 600; /* Bolder header text */
+            color: #202124; /* Dark grey header text */
+        }
+        .sheet-table tr:nth-child(even) {
+            background-color: #f8f9fa; /* Zebra striping for rows */
+        }
+        .sheet-table td i {
+            color: #dc3545; /* Red color for italicized charges */
+            font-style: italic; /* Ensure italics */
+        }
+        .sheet-table tfoot td {
+            font-weight: 600;
+            background-color: #f1f3f4;
+        }
+        .summary-box {
+            background-color: #ffffff;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-top: 1rem;
+            margin-bottom: 2rem; /* Add space below summary */
+        }
+        .summary-title {
+            font-weight: 600;
+            color: #1967d2; /* Blue title */
+            margin-bottom: 0.5rem;
+        }
+        .summary-amount {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: #202124;
+        }
+        .account-number-title {
+             font-weight: 600;
+             color: #6c757d; /* Grey title */
+             margin-bottom: 0.25rem;
+             font-size: 0.9rem;
+        }
+         .account-number {
+             font-weight: 600;
+             font-size: 1rem;
+             color: #343a40; /* Dark grey number */
+             margin-bottom: 1rem; /* Space below account number */
+         }
+        .due-today {
+            color: #dc3545; /* Red for due today / overdue */
+        }
+        .outstanding {
+            color: #fd7e14; /* Orange for remaining outstanding */
+        }
+        .outstanding-note {
+            font-size: 0.75rem;
+            color: #6c757d; /* Grey note text */
+            margin-top: 0.25rem;
+        }
+        h2 { /* Monthly section titles */
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem; /* Reduced margin */
+            color: #343a40;
+            display: flex; /* Use flexbox for alignment */
+            align-items: center; /* Vertically align items */
+        }
+        .section-title { /* Titles for non-monthly sections like Upcoming, Charges */
+             font-size: 1.25rem;
+             font-weight: 600;
+             margin-bottom: 1rem; /* More space below section title */
+             color: #343a40;
+             margin-top: 2rem; /* Add space above section */
+        }
+        .statement-date {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 1rem;
+        }
+        /* Styles for the breakdown table inside the summary */
+        .breakdown-table {
+            width: 100%;
+            margin-top: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            overflow: hidden;
+            font-size: 0.8rem;
+        }
+        .breakdown-table th, .breakdown-table td {
+            padding: 0.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            text-align: left;
+            vertical-align: top;
+        }
+        .breakdown-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        .breakdown-table tr:last-child td {
+            border-bottom: none;
+        }
+        .breakdown-table tfoot td {
+            font-weight: 700;
+            background-color: #f1f3f4;
+            color: #dc3545;
+        }
+        .breakdown-title {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #495057;
+            margin-top: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        .breakdown-note {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 0.25rem;
+        }
+        /* Style for sub-details in breakdown */
+        .sub-detail {
+            font-size: 0.75rem;
+            color: #6c757d;
+            padding-left: 1rem;
+            display: block;
+            margin-top: 0.25rem;
+        }
+        /* Style for the status stickers */
+        .status-sticker {
+             margin-left: 0.5rem;
+             font-size: 1rem;
+        }
+        /* Styles for Detailed Charges Table */
+        .charges-table { /* Use sheet-table styles but allow overrides */
+             /* Inherits from .sheet-table */
+             margin-top: 1rem; /* Space above charges table */
+        }
+        .charges-table tfoot td {
+            font-weight: 700;
+            background-color: #e9ecef; /* Footer background */
+        }
+        .charges-table .grand-total td {
+             background-color: #dee2e6; /* Darker footer for grand total */
+             font-size: 1rem;
+             color: #dc3545; /* Red grand total */
+        }
+
+
+        /* Responsive adjustments */
+        @media (max-width: 640px) {
+            .sheet-table th, .sheet-table td, .charges-table th, .charges-table td {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+            .summary-box {
+                padding: 1rem;
+            }
+            h2, .section-title {
+                font-size: 1.1rem;
+            }
+            body {
+                padding: 0.5rem;
+            }
+            .breakdown-table th, .breakdown-table td {
+                padding: 0.4rem;
+                font-size: 0.75rem;
+            }
+            .sub-detail {
+                font-size: 0.7rem;
+                padding-left: 0.5rem;
+            }
+            .status-sticker {
+                font-size: 0.9rem;
+            }
+             .charges-table tfoot td {
+                 font-size: 0.9rem;
+             }
+             .charges-table .grand-total td {
+                 font-size: 0.95rem;
+             }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="summary-box">
+        <div>
+            <div class="account-number-title">HDFC Insta Jumbo Loan Account Number:</div>
+            <div class="account-number">0001019020018132022</div>
+        </div>
+
+        <div class="mb-2">
+            <div class="summary-title">Total Amount Overdue (as of May 1, 2025)</div>
+            <div class="summary-amount due-today">₹1,41,233.55</div>
+            <div class="outstanding-note">This was the total due on the April 15 statement, with payment required immediately.</div>
+        </div>
+
+        <div>
+            <div class="breakdown-title">Overdue Amount Breakdown (as per Apr 15 Statement):</div>
+            <table class="breakdown-table">
+                <thead>
+                    <tr>
+                        <th>Aging Bucket</th>
+                        <th>Amount (₹)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Current Dues*</td>
+                        <td>₹19,684.07</td>
+                    </tr>
+                    <tr>
+                        <td>1 Month Overdue <span class="sub-detail">(Orig. Current on Mar 15 Stmt)</span></td>
+                        <td>₹20,048.45</td>
+                    </tr>
+                    <tr>
+                        <td>2 Months Overdue <span class="sub-detail">(Orig. 1 Month on Mar 15 Stmt)</span></td>
+                        <td>₹19,586.21</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            3 Months+ Overdue
+                            <span class="sub-detail">(Orig. 2 & 3 Months+ on Mar 15 Stmt, totaling ₹92,403.15)</span>
+                            <span class="sub-detail">(- Payments Mar 16-Apr 15: ₹10,488.33)</span>
+                        </td>
+                        <td>₹81,914.82</td>
+                    </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td class="font-bold">Total Overdue</td>
+                        <td class="font-bold">₹1,41,233.55</td>
+                    </tr>
+                </tfoot>
+            </table>
+            <div class="breakdown-note">*Current Dues calculated (Total - Other Buckets) as statement data was slightly off.</div>
+        </div>
+        <div class="mt-4">
+            <div class="summary-title">Estimated Remaining Loan Principal (as of Apr 15, 2025)</div>
+            <div class="summary-amount outstanding">₹166,363.51</div>
+            <div class="outstanding-note">Note: This is the principal balance reported on the Apr 15 statement. It does not include interest accrued after Apr 15, the upcoming May EMI, or any potential new charges.</div>
+        </div>
+    </div>
+
+    <div class="section-title">Upcoming Payments (Estimated)</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Estimated Bill Date</th>
+                    <th>Description</th>
+                    <th>Estimated Amount (₹)</th>
+                    <th>Estimated Due Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>May 15, 2025</td>
+                    <td>Loan EMI (#14) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Jun 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Jun 15, 2025</td>
+                    <td>Loan EMI (#15) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Jul 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Jul 15, 2025</td>
+                    <td>Loan EMI (#16) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Aug 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 15, 2025</td>
+                    <td>Loan EMI (#17) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Sep 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 15, 2025</td>
+                    <td>Loan EMI (#18) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Oct 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Oct 15, 2025</td>
+                    <td>Loan EMI (#19) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Nov 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 15, 2025</td>
+                    <td>Loan EMI (#20) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Dec 4-5, 2025</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 15, 2025</td>
+                    <td>Loan EMI (#21) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Jan 4-5, 2026</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 15, 2026</td>
+                    <td>Loan EMI (#22) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Feb 4-5, 2026</td>
+                 </tr>
+                 <tr>
+                    <td>Feb 15, 2026</td>
+                    <td>Loan EMI (#23) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Mar 4-5, 2026</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 15, 2026</td>
+                    <td>Loan EMI (#24 - Final) for Loan #104849223</td>
+                    <td>~ ₹16,815.50</td>
+                    <td>~ Apr 4-5, 2026</td>
+                 </tr>
+            </tbody>
+        </table>
+        <div class="outstanding-note mb-6">Note: Upcoming amounts and dates are estimates based on past statements and typical patterns. The principal and interest components will change over time, and the final EMI amount might differ slightly. Check official bank communications for exact details.</div>
+    </div>
+    <h2>April 2025 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Apr 15, 2025 | Covers: Mar 16 - Apr 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Mar 15, 2025</td>
+                    <td>Opening Balance</td>
+                    <td>₹1,32,037.81</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 20, 2025</td>
+                    <td>Payment Received (PAYMENT THANKYOU)</td>
+                    <td>₹488.33</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 4, 2025</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹1,31,549.48</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 4, 2025</td>
+                    <td>Payment Received (PayZapp)</td>
+                    <td>₹10,000.00</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 4, 2025</td>
+                    <td>Autopay Returned</td>
+                    <td>₹1,31,549.48</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 4, 2025</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹437.58</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Apr 4, 2025</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹2,430.99</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Apr 15, 2025</td>
+                    <td>Loan Installment (Principal - #13)</td>
+                    <td>₹13,558.90</td>
+                    <td class="text-blue-600">Loan EMI</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 15, 2025</td>
+                    <td>Loan Installment (Interest - #13)</td>
+                    <td>₹3,256.60</td>
+                    <td class="text-blue-600">Loan EMI</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Apr 15, 2025:</td>
+                    <td class="font-bold">₹1,41,233.55</td>
+                    <td class="font-semibold text-red-600">Due Immediately (Overdue)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>March 2025 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Mar 15, 2025 | Covers: Feb 16 - Mar 15</div>
+     <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Feb 15, 2025</td>
+                    <td>Opening Balance</td>
+                    <td>₹1,11,989.36</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 7, 2025</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹1,11,989.36</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 7, 2025</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹2,239.79</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Mar 7, 2025</td>
+                    <td>Autopay Returned</td>
+                    <td>₹1,11,989.36</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 7, 2025</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹403.16</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Mar 14, 2025</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Mar 14, 2025</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Mar 15, 2025</td>
+                    <td>Loan Installment (Principal - #12)</td>
+                    <td>₹13,317.85</td>
+                    <td class="text-blue-600">Loan EMI</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 15, 2025</td>
+                    <td>Loan Installment (Interest - #12)</td>
+                    <td>₹3,497.65</td>
+                    <td class="text-blue-600">Loan EMI</td>
+                 </tr>
+            </tbody>
+             <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Mar 15, 2025:</td>
+                    <td class="font-bold">₹1,32,037.81</td>
+                    <td class="font-semibold text-red-600">Due Immediately (Overdue)</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>February 2025 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Feb 15, 2025 | Covers: Jan 16 - Feb 15</div>
+     <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Jan 15, 2025</td>
+                    <td>Opening Balance</td>
+                    <td>₹1,37,903.15</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 29, 2025</td>
+                    <td>Payment Received (PayZapp)</td>
+                    <td>₹45,500.00</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Feb 4, 2025</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹92,403.15</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Feb 4, 2025</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹332.65</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Feb 4, 2025</td>
+                    <td>Autopay Returned</td>
+                    <td>₹92,403.15</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Feb 4, 2025</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹1,848.06</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Feb 11, 2025</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Feb 11, 2025</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Feb 15, 2025</td>
+                    <td>Loan Installment (Interest - #11)</td>
+                    <td>₹3,734.42</td>
+                    <td class="text-blue-600">Loan EMI</td>
+                 </tr>
+                 <tr>
+                    <td>Feb 15, 2025</td>
+                    <td>Loan Installment (Principal - #11)</td>
+                    <td>₹13,081.08</td>
+                    <td class="text-blue-600">Loan EMI</td>
+                 </tr>
+            </tbody>
+             <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Feb 15, 2025:</td>
+                    <td class="font-bold">₹1,11,989.36</td>
+                     <td class="font-semibold">Due Mar 7, 2025</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>January 2025 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Jan 15, 2025 | Covers: Dec 16 - Jan 15</div>
+     <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Dec 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹91,354.77</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 20, 2024</td>
+                    <td>Payment Received (PAYMENT THANKYOU)</td>
+                    <td>₹221.44</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 4, 2025</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹91,133.33</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 4, 2025</td>
+                    <td>Autopay Returned</td>
+                    <td>₹91,133.33</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 4, 2025</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹328.08</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Jan 4, 2025</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹1,822.67</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Jan 11, 2025</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Jan 11, 2025</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Jan 15, 2025</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #12)</td>
+                    <td>₹26,856.38</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 15, 2025</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #10)</td>
+                    <td>₹3,966.97</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 15, 2025</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #12)</td>
+                    <td>₹357.19</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Jan 15, 2025</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #10)</td>
+                    <td>₹12,848.53</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+            </tbody>
+             <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Jan 15, 2025:</td>
+                    <td class="font-bold">₹1,37,903.15</td>
+                    <td class="font-semibold">Due Feb 4, 2025</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>December 2024 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Dec 15, 2024 | Covers: Nov 16 - Dec 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Nov 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹89,687.24</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 20, 2024</td>
+                    <td>Payment Received (DEBIT LETTER PAYMENT THANKYOU)</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 5, 2024</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹45,658.16</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 5, 2024</td>
+                    <td>Autopay Returned</td>
+                    <td>₹45,658.16</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 5, 2024</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹913.16</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Dec 5, 2024</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹164.37</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Dec 12, 2024</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Dec 12, 2024</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Dec 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #9)</td>
+                    <td>₹12,620.10</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #9)</td>
+                    <td>₹4,195.40</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #11)</td>
+                    <td>₹709.69</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Dec 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #11)</td>
+                    <td>₹26,503.89</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Dec 15, 2024:</td>
+                    <td class="font-bold">₹91,354.77</td>
+                    <td class="font-semibold">Due Jan 4, 2025</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>November 2024 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Nov 15, 2024 | Covers: Oct 16 - Nov 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Oct 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹44,029.08</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 4, 2024</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 4, 2024</td>
+                    <td>Autopay Returned</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 4, 2024</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹880.58</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Nov 4, 2024</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹158.50</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Nov 11, 2024</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Nov 11, 2024</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Nov 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #8)</td>
+                    <td>₹4,419.76</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #10)</td>
+                    <td>₹1,057.57</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #8)</td>
+                    <td>₹12,395.74</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Nov 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #10)</td>
+                    <td>₹26,156.01</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Nov 15, 2024:</td>
+                    <td class="font-bold">₹89,687.24</td>
+                    <td class="font-semibold">Due Dec 5, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>October 2024 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Oct 15, 2024 | Covers: Sep 16 - Oct 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Sep 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹91,354.77</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 20, 2024</td>
+                    <td>Payment Received (PAYMENT THANKYOU)</td>
+                    <td>₹45,658.16</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 25, 2024</td>
+                    <td>Payment Received (NETBANKING TRANSFER)</td>
+                    <td>₹45,696.61</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Oct 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #9)</td>
+                    <td>₹25,812.70</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Oct 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #9)</td>
+                    <td>₹1,400.88</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Oct 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #7)</td>
+                    <td>₹12,175.36</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Oct 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #7)</td>
+                    <td>₹4,640.14</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Oct 15, 2024:</td>
+                    <td class="font-bold">₹44,029.08</td>
+                    <td class="font-semibold">Due Nov 4, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>September 2024 Statement Period<span class="status-sticker">✅</span></h2>
+    <div class="statement-date">Statement Date: Sep 15, 2024 | Covers: Aug 16 - Sep 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Aug 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹89,687.24</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 19, 2024</td>
+                    <td>Payment Received (PAYMENT THANKYOU)</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 4, 2024</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹45,658.16</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 4, 2024</td>
+                    <td>Autopay Returned</td>
+                    <td>₹45,658.16</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 4, 2024</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹913.16</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Sep 4, 2024</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹164.37</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Sep 11, 2024</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Sep 11, 2024</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Sep 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #6)</td>
+                    <td>₹4,856.59</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #8)</td>
+                    <td>₹1,739.68</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #8)</td>
+                    <td>₹25,473.90</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Sep 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #6)</td>
+                    <td>₹11,958.91</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Sep 15, 2024:</td>
+                    <td class="font-bold">₹91,354.77</td>
+                    <td class="font-semibold">Due Oct 5, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>August 2024 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Aug 15, 2024 | Covers: Jul 16 - Aug 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Jul 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹44,029.08</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 4, 2024</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 4, 2024</td>
+                    <td>Autopay Returned</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 4, 2024</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹158.50</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Aug 4, 2024</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹880.58</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Aug 11, 2024</td>
+                    <td><i>IGST on Late Fee (18%)</i></td>
+                    <td><i>₹90.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Aug 11, 2024</td>
+                    <td><i>Late Fee</i></td>
+                    <td><i>₹500.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Aug 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #5)</td>
+                    <td>₹5,069.20</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #7)</td>
+                    <td>₹2,074.03</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #7)</td>
+                    <td>₹25,139.55</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Aug 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #5)</td>
+                    <td>₹11,746.30</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Aug 15, 2024:</td>
+                    <td class="font-bold">₹89,687.24</td>
+                    <td class="font-semibold">Due Sep 4, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>July 2024 Statement Period<span class="status-sticker">❌</span></h2>
+    <div class="statement-date">Statement Date: Jul 15, 2024 | Covers: Jun 16 - Jul 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Jun 15, 2024</td> <td>Opening Balance</td>
+                    <td>₹44,029.08</td> <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Jul 4, 2024</td>
+                    <td>Payment Received (NETBANKING TRANSFER)</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Jul 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #6)</td>
+                    <td>₹2,404.00</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Jul 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #4)</td>
+                    <td>₹5,278.03</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Jul 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #4)</td>
+                    <td>₹11,537.47</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Jul 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #6)</td>
+                    <td>₹24,809.58</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Jul 15, 2024:</td>
+                    <td class="font-bold">₹44,029.08</td>
+                    <td class="font-semibold">Due Aug 4, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>June 2024 Statement Period<span class="status-sticker">✅</span></h2>
+    <div class="statement-date">Statement Date: Jun 15, 2024 | Covers: May 16 - Jun 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>May 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹44,029.08</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Jun 4, 2024</td>
+                    <td>Payment Received (AUTOPAY THANK YOU)</td>
+                    <td>₹44,029.08</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Jun 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #5)</td>
+                    <td>₹2,729.64</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Jun 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #3)</td>
+                    <td>₹11,332.36</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Jun 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #3)</td>
+                    <td>₹5,483.14</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Jun 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #5)</td>
+                    <td>₹24,483.94</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Jun 15, 2024:</td>
+                    <td class="font-bold">₹44,029.08</td>
+                    <td class="font-semibold">Due Jul 5, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>May 2024 Statement Period<span class="status-sticker">✅</span></h2>
+    <div class="statement-date">Statement Date: May 15, 2024 | Covers: Apr 16 - May 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Apr 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹44,423.62</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 16, 2024</td>
+                    <td>Payment Received (NETBANKING TRANSFER)</td>
+                    <td>₹44,423.62</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>May 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #2)</td>
+                    <td>₹5,684.61</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>May 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #4)</td>
+                    <td>₹3,051.00</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>May 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #4)</td>
+                    <td>₹24,162.58</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>May 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #2)</td>
+                    <td>₹11,130.89</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on May 15, 2024:</td>
+                    <td class="font-bold">₹44,029.08</td>
+                    <td class="font-semibold">Due Jun 4, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>April 2024 Statement Period<span class="status-sticker">✅</span></h2>
+    <div class="statement-date">Statement Date: Apr 15, 2024 | Covers: Mar 16 - Apr 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Mar 15, 2024</td>
+                    <td>Opening Balance</td>
+                    <td>₹27,943.27</td>
+                    <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 3, 2024</td>
+                    <td>Payment Received (NETBANKING TRANSFER)</td>
+                    <td>₹27,943.27</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 10, 2024</td>
+                    <td><i>Jumbo Loan Processing Fee (#104849223)</i></td>
+                    <td><i>₹999.00</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Apr 10, 2024</td>
+                    <td><i>IGST on Processing Fee (18%)</i></td>
+                    <td><i>₹179.82</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Apr 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #3)</td>
+                    <td>₹3,368.14</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 15, 2024</td>
+                    <td>Loan Installment (Interest - New Loan #104849223 - #1)</td>
+                    <td>₹5,098.22</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #3)</td>
+                    <td>₹23,845.44</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Apr 15, 2024</td>
+                    <td>Loan Installment (Principal - New Loan #104849223 - #1)</td>
+                    <td>₹10,933.00</td>
+                    <td class="text-blue-600">Loan EMI (New)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Apr 15, 2024:</td>
+                    <td class="font-bold">₹44,423.62</td>
+                    <td class="font-semibold">Due May 5, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h2>March 2024 Statement Period<span class="status-sticker">✅</span></h2>
+    <div class="statement-date">Statement Date: Mar 15, 2024 | Covers: Feb 16 - Mar 15</div>
+    <div class="overflow-x-auto">
+        <table class="sheet-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Description</th>
+                    <th>Amount (₹)</th>
+                    <th>Type</th>
+                </tr>
+            </thead>
+            <tbody>
+                 <tr>
+                    <td>Feb 15, 2024</td> <td>Opening Balance</td>
+                    <td>₹30,919.21</td> <td>Balance Forward</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 6, 2024</td>
+                    <td>Autopay Attempt (AUTOPAY THANK YOU)</td>
+                    <td>₹30,919.21</td>
+                    <td class="text-gray-500">Autopay Attempt</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 6, 2024</td>
+                    <td>Payment Received (NETBANKING TRANSFER)</td>
+                    <td>₹30,919.21</td>
+                    <td class="text-green-600">Payment</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 6, 2024</td>
+                    <td>Autopay Returned</td>
+                    <td>₹30,919.21</td>
+                    <td class="text-red-600">Autopay Failed</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 6, 2024</td>
+                    <td><i>Payment Return Fee</i></td>
+                    <td><i>₹618.38</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Mar 6, 2024</td>
+                    <td><i>IGST on Payment Return Fee (18%)</i></td>
+                    <td><i>₹111.31</i></td>
+                    <td class="text-red-600"><i>Charge</i></td>
+                 </tr>
+                 <tr>
+                    <td>Mar 15, 2024</td>
+                    <td>Loan Installment (Principal - Old Loan #101774988 - #2)</td>
+                    <td>₹23,532.45</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+                 <tr>
+                    <td>Mar 15, 2024</td>
+                    <td>Loan Installment (Interest - Old Loan #101774988 - #2)</td>
+                    <td>₹3,681.13</td>
+                    <td class="text-blue-600">Loan EMI (Old)</td>
+                 </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="2" class="font-semibold text-right">Total Dues on Mar 15, 2024:</td>
+                    <td class="font-bold">₹27,943.27</td>
+                    <td class="font-semibold">Due Apr 4, 2024</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+</body>
+</html>
